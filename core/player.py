@@ -40,7 +40,7 @@ class Player(pygame.sprite.Sprite):
         frames = []
         for i in range(num_frames):
             frame = sheet.subsurface(pygame.Rect(i * frame_width, 0, frame_width, sheet_height))
-            frames.append(pygame.transform.scale(frame, (frame.get_width() * 2, frame.get_height() * 2)))
+            frames.append(pygame.transform.scale(frame, (frame.get_width() *2, frame.get_height() *2 )))
         return frames
 
     def input(self, keys):
@@ -70,8 +70,8 @@ class Player(pygame.sprite.Sprite):
     def apply_gravity(self):
         self.vel.y += self.gravity
         self.rect.y += self.vel.y
-        if self.rect.bottom >= 500:
-            self.rect.bottom = 500
+        if self.rect.bottom >= 700:  # Chão padrão
+            self.rect.bottom = 700
             self.on_ground = True
             self.vel.y = 0
 

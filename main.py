@@ -1,53 +1,39 @@
 import pygame
 from core.player import Player
-from core.tilemap import TileMap
-from core.camera import Camera
+from core.room_manager import RoomManager
 
-if __name__ == "__main__":
-    pygame.init()
-    SCREEN_WIDTH, SCREEN_HEIGHT = 800, 600
-    screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-    pygame.display.set_caption("Hollow Mooni")
-    clock = pygame.time.Clock()
+pygame.init()
 
-    # Player
-    player = Player((100, 500))
-    all_sprites = pygame.sprite.Group()
-    all_sprites.add(player)
+SCREEN_WIDTH, SCREEN_HEIGHT = 1280, 720
+screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+pygame.display.set_caption("Hollow Mooni - Room System")
 
-    # TileMap
-    map_data = [
-    [-1]*40,
-    [-1, -1, -1, -1, -1, -1,  2, -1, -1, -1,  2, -1, -1, -1,  2, -1, -1, -1,  2, -1, -1, -1, -1,  2, -1, -1, -1,  2, -1, -1, -1,  2, -1, -1, -1, -1, -1, -1, -1],
-    [-1, -1, -1, -1, -1, -1, -1, -1,  2, -1, -1, -1,  2, -1, -1, -1,  2, -1, -1, -1,  2, -1, -1, -1,  2, -1, -1, -1,  2, -1, -1, -1,  2, -1, -1, -1, -1, -1, -1],
-    [-1]*40,
-    [0]*40,
-    [1]*40,
-]
+clock = pygame.time.Clock()
 
-    tilemap = TileMap("assets/Dungeon Tile Set.png", 32, map_data)
+player = Player((50, 400))  # Posição inicial mais alta para "cair" no chão
+room_manager = RoomManager(SCREEN_WIDTH, SCREEN_HEIGHT)
 
-    # Camera
-    camera = Camera(SCREEN_WIDTH, SCREEN_HEIGHT)
+running = True
+while running:
+    keys = pygame.key.get_pressed()
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
 
-    running = True
-    while running:
-        screen.fill((30, 30, 30))
-        keys = pygame.key.get_pressed()
+    player.update(keys)
 
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
+    if room_manager.is_at_door(player):
+        room_manager.next_room()
+        player.rect.topleft = (50, 400)  # Resetar posição ao trocar de sala
 
-        all_sprites.update(keys)
-        camera.update(player)
+    room_manager.draw_room(screen)
 
-        tilemap.draw(screen, camera)
+    # Chão visível
+    pygame.draw.rect(screen, (100, 100, 100), pygame.Rect(0, 700, SCREEN_WIDTH, 100))
 
-        for sprite in all_sprites:
-            sprite.draw(screen)
+    player.draw(screen)
 
-        pygame.display.flip()
-        clock.tick(60)
+    pygame.display.flip()
+    clock.tick(60)
 
-    pygame.quit()
+pygame.quit()
