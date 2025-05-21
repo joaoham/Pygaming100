@@ -5,7 +5,6 @@ class Player(pygame.sprite.Sprite):
     def __init__(self, pos):
         super().__init__()
 
-        # Dicionário de animações com número de frames por sheet
         self.animation_data = {
             "idle": ("assets/player/Little Mooni-Idle.png", 8),
             "run": ("assets/player/Little Mooni-Run.png", 8),
@@ -22,13 +21,14 @@ class Player(pygame.sprite.Sprite):
 
         self.state = "idle"
         self.frame_index = 0
-        self.animation_speed = 0.15
+        self.animation_speed = 0.30
         self.image = self.animations[self.state][self.frame_index]
         self.rect = self.image.get_rect(topleft=pos)
+
         self.vel = pygame.math.Vector2(0, 0)
         self.speed = 5
-        self.gravity = 1
-        self.jump_speed = -15
+        self.gravity = 2.5
+        self.jump_speed = -25
         self.on_ground = True
         self.facing_right = True
 
@@ -40,7 +40,7 @@ class Player(pygame.sprite.Sprite):
         frames = []
         for i in range(num_frames):
             frame = sheet.subsurface(pygame.Rect(i * frame_width, 0, frame_width, sheet_height))
-            frames.append(pygame.transform.scale(frame, (frame.get_width() *2, frame.get_height() *2 )))
+            frames.append(pygame.transform.scale(frame, (frame.get_width() * 2, frame.get_height() * 2)))
         return frames
 
     def input(self, keys):
@@ -67,32 +67,49 @@ class Player(pygame.sprite.Sprite):
             self.vel.y = self.jump_speed
             self.on_ground = False
 
-    def apply_gravity(self):
+    def apply_gravity(self, ground_level):
         self.vel.y += self.gravity
         self.rect.y += self.vel.y
-        if self.rect.bottom >= 700:  # Chão padrão
-            self.rect.bottom = 700
+        if self.rect.bottom >= ground_level:
+            self.rect.bottom = ground_level
             self.on_ground = True
             self.vel.y = 0
 
     def animate(self):
         frames = self.animations[self.state]
-        self.frame_index += self.animation_speed
+    
+    # ✅ Aumenta velocidade só no smash
+        if self.state == "smash":
+            speed = self.animation_speed * 2  # Ajuste aqui: 2x mais rápido
+        else:
+            speed = self.animation_speed
+
+        self.frame_index += speed
+
         if self.frame_index >= len(frames):
             self.frame_index = 0
-            if self.state in ["smash", "thrust", "heal"]:
-                self.state = "idle"
+        if self.state in ["smash", "thrust", "heal"]:
+            self.state = "idle"
 
         image = frames[int(self.frame_index)]
         if not self.facing_right:
             image = pygame.transform.flip(image, True, False)
         self.image = image
 
-    def update(self, keys):
+        
+
+    def update(self, keys, ground_level, screen_width):
         self.input(keys)
         self.animate()
         self.rect.x += self.vel.x
-        self.apply_gravity()
+
+        # Impede que saia da tela
+        if self.rect.left < 0:
+            self.rect.left = 0
+        if self.rect.right > screen_width:
+            self.rect.right = screen_width
+
+        self.apply_gravity(ground_level)
 
     def draw(self, surface):
         surface.blit(self.image, self.rect)
