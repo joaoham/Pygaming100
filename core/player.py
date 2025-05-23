@@ -38,27 +38,22 @@ class Player(pygame.sprite.Sprite):
 
     def load_animation(self, sheet_path, num_frames):
         sheet = pygame.image.load(sheet_path).convert_alpha()
-        sheet_width, sheet_height = sheet.get_size()
-        frame_width = sheet_width // num_frames
-        frames = []
-
-        for i in range(num_frames):
-            frame = sheet.subsurface(pygame.Rect(i * frame_width, 0, frame_width, sheet_height))
-            frames.append(pygame.transform.scale(frame, (frame.get_width() * 2, frame.get_height() * 2)))
+        frame_width = sheet.get_width() // num_frames
+        frames = [pygame.transform.scale(sheet.subsurface(i * frame_width, 0, frame_width, sheet.get_height()), 
+                    (frame_width * 2, sheet.get_height() * 2)) for i in range(num_frames)]
         return frames
 
     def input(self, keys):
-        self.vel.x = 0
-
         if keys[pygame.K_a]:
             self.vel.x = -self.speed
             self.state = "run"
-            self.facing_right = False
+            self.facing_right = False  # ✅ CORRIGIDO
         elif keys[pygame.K_d]:
             self.vel.x = self.speed
             self.state = "run"
             self.facing_right = True
         else:
+            self.vel.x = 0
             if self.on_ground:
                 self.state = "idle"
 
@@ -82,18 +77,12 @@ class Player(pygame.sprite.Sprite):
 
     def animate(self):
         frames = self.animations[self.state]
-
-        if self.state == "smash":
-            speed = self.animation_speed * 2
-        else:
-            speed = self.animation_speed
-
+        speed = self.animation_speed * 2 if self.state == "smash" else self.animation_speed
         self.frame_index += speed
         if self.frame_index >= len(frames):
             self.frame_index = 0
             if self.state in ["smash", "thrust", "heal"]:
                 self.state = "idle"
-
         image = frames[int(self.frame_index)]
         if not self.facing_right:
             image = pygame.transform.flip(image, True, False)
@@ -101,27 +90,20 @@ class Player(pygame.sprite.Sprite):
 
     def take_damage(self, amount):
         self.health -= amount
-        print(f"Player tomou {amount} de dano! Vida atual: {self.health}")
         if self.health <= 0:
             self.alive = False
             self.state = "death"
-            print("Player morreu!")
 
     def update(self, keys, ground_level, screen_width):
         if not self.alive:
             self.state = "death"
             self.animate()
             return
-
         self.input(keys)
         self.animate()
         self.rect.x += self.vel.x
-
-        if self.rect.left < 0:
-            self.rect.left = 0
-        if self.rect.right > screen_width:
-            self.rect.right = screen_width
-
+        self.rect.left = max(self.rect.left, 0)
+        self.rect.right = min(self.rect.right, screen_width)
         self.apply_gravity(ground_level)
 
     def draw(self, surface):
