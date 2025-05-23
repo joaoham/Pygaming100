@@ -1,6 +1,11 @@
 import pygame
 from core.player import Player
 from core.room_manager import RoomManager
+from core.wave_manager import WaveManager
+from core.skeleton import SkeletonEnemy
+from core.nightborne import NightBorneEnemy
+from core.bringer import BringerOfDeathEnemy
+from core.spell_effect import SpellEffect
 
 pygame.init()
 
@@ -16,10 +21,27 @@ current_ground_level = room_manager.get_ground_level()
 
 player = Player((SCREEN_WIDTH // 2 - 50, current_ground_level - 80))
 
+all_enemies = pygame.sprite.Group()
+spells = pygame.sprite.Group()
+
+wave_definitions = [
+    [(SkeletonEnemy, 3)],
+    [(SkeletonEnemy, 3), (BringerOfDeathEnemy, 2)],
+    [(NightBorneEnemy, 1), (SkeletonEnemy, 2)]
+]
+
+wave_manager = WaveManager(wave_definitions, all_enemies, SCREEN_WIDTH, current_ground_level, room_manager)
+
 def draw_text(surface, text, pos, color=(255, 255, 255), size=36):
     font = pygame.font.SysFont(None, size)
     text_surface = font.render(text, True, color)
     surface.blit(text_surface, pos)
+
+def draw_health_bar(surface, player, pos=(20, 20), size=(200, 20)):
+    pygame.draw.rect(surface, (255, 0, 0), (*pos, size[0], size[1]))  # Fundo vermelho
+    current_width = size[0] * (player.health / player.max_health)
+    pygame.draw.rect(surface, (0, 255, 0), (*pos, current_width, size[1]))  # Barra verde
+    pygame.draw.rect(surface, (255, 255, 255), (*pos, size[0], size[1]), 2)  # Borda branca
 
 running = True
 while running:
@@ -37,34 +59,71 @@ while running:
         player.animate()
         player.apply_gravity(current_ground_level)
 
-    # ✅ Transição automática ao alcançar o limite direito da tela:
-    if player.rect.right >= SCREEN_WIDTH - 10:  # Pode ajustar esse "10" para sensibilidade
-        if room_manager.current_room in [1, 2]:  # Se estiver na sala 2 ou 3
+    if room_manager.current_room == 1:
+        wave_manager.update()
+        if not wave_manager.wave_in_progress and len(all_enemies) == 0:
+            wave_manager.start_next_wave()
+
+    if player.rect.right >= SCREEN_WIDTH - 10:
+        if room_manager.current_room == 1:
+            if wave_manager.current_wave > len(wave_definitions):
+                room_manager.next_room()
+                current_ground_level = room_manager.get_ground_level()
+                player.rect.topleft = (50, current_ground_level - 80)
+        elif room_manager.current_room in [2]:
             room_manager.next_room()
             current_ground_level = room_manager.get_ground_level()
             player.rect.topleft = (50, current_ground_level - 80)
 
-    # ✅ Transição via porta apenas na primeira sala
     if room_manager.current_room == 0 and room_manager.player_at_door(player):
         if keys[pygame.K_e]:
             room_manager.next_room()
             current_ground_level = room_manager.get_ground_level()
             player.rect.topleft = (50, current_ground_level - 80)
 
-    # ✅ Desenha em ordem: fundo → player → foreground
     room_manager.draw_room(screen)
     player.draw(screen)
     room_manager.draw_foreground(screen)
 
-    # ✅ Mostra mensagem apenas na sala 0
+    for enemy in all_enemies:
+        if isinstance(enemy, BringerOfDeathEnemy):
+            enemy.update(player)
+            now = pygame.time.get_ticks()
+            if enemy.state == "cast" and now - enemy.last_attack_time < 500:
+                spell = SpellEffect(player.rect.center, enemy.animations["spell"])
+                spells.add(spell)
+        else:
+            enemy.update(player)
+        enemy.draw(screen)
+
+    for spell in spells:
+        spell.update(player)
+        spell.draw(screen)
+
     if room_manager.current_room == 0 and room_manager.player_at_door(player):
         draw_text(
             screen,
             "Pressione E para entrar no castelo",
-            (SCREEN_WIDTH // 2 - 200, current_ground_level - 150),
+            (SCREEN_WIDTH // 2 - 200, current_ground_level - 600),
             color=(255, 255, 0),
             size=36
         )
+
+    # ✅ HUD de vida
+    draw_health_bar(screen, player)
+
+    # ✅ Reset se player morrer
+    if not player.alive:
+        draw_text(screen, "Você morreu! Pressione R para reiniciar", 
+                  (SCREEN_WIDTH//2 - 250, SCREEN_HEIGHT//2), (255, 0, 0), size=40)
+        if keys[pygame.K_r]:
+            player = Player((SCREEN_WIDTH // 2 - 50, current_ground_level - 80))
+            player.health = player.max_health
+            player.alive = True
+            wave_manager = WaveManager(wave_definitions, all_enemies, SCREEN_WIDTH, current_ground_level, room_manager)
+            all_enemies.empty()
+            spells.empty()
+            room_manager.current_room = 0
 
     pygame.display.flip()
     clock.tick(60)
