@@ -32,18 +32,24 @@ class Player(pygame.sprite.Sprite):
         self.on_ground = True
         self.facing_right = True
 
+        self.max_health = 100
+        self.health = self.max_health
+        self.alive = True
+
     def load_animation(self, sheet_path, num_frames):
         sheet = pygame.image.load(sheet_path).convert_alpha()
         sheet_width, sheet_height = sheet.get_size()
         frame_width = sheet_width // num_frames
-
         frames = []
+
         for i in range(num_frames):
             frame = sheet.subsurface(pygame.Rect(i * frame_width, 0, frame_width, sheet_height))
             frames.append(pygame.transform.scale(frame, (frame.get_width() * 2, frame.get_height() * 2)))
         return frames
 
     def input(self, keys):
+        self.vel.x = 0
+
         if keys[pygame.K_a]:
             self.vel.x = -self.speed
             self.state = "run"
@@ -53,7 +59,6 @@ class Player(pygame.sprite.Sprite):
             self.state = "run"
             self.facing_right = True
         else:
-            self.vel.x = 0
             if self.on_ground:
                 self.state = "idle"
 
@@ -77,33 +82,41 @@ class Player(pygame.sprite.Sprite):
 
     def animate(self):
         frames = self.animations[self.state]
-    
-    # ✅ Aumenta velocidade só no smash
+
         if self.state == "smash":
-            speed = self.animation_speed * 2  # Ajuste aqui: 2x mais rápido
+            speed = self.animation_speed * 2
         else:
             speed = self.animation_speed
 
         self.frame_index += speed
-
         if self.frame_index >= len(frames):
             self.frame_index = 0
-        if self.state in ["smash", "thrust", "heal"]:
-            self.state = "idle"
+            if self.state in ["smash", "thrust", "heal"]:
+                self.state = "idle"
 
         image = frames[int(self.frame_index)]
         if not self.facing_right:
             image = pygame.transform.flip(image, True, False)
         self.image = image
 
-        
+    def take_damage(self, amount):
+        self.health -= amount
+        print(f"Player tomou {amount} de dano! Vida atual: {self.health}")
+        if self.health <= 0:
+            self.alive = False
+            self.state = "death"
+            print("Player morreu!")
 
     def update(self, keys, ground_level, screen_width):
+        if not self.alive:
+            self.state = "death"
+            self.animate()
+            return
+
         self.input(keys)
         self.animate()
         self.rect.x += self.vel.x
 
-        # Impede que saia da tela
         if self.rect.left < 0:
             self.rect.left = 0
         if self.rect.right > screen_width:
