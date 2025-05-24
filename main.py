@@ -21,6 +21,11 @@ current_ground_level = room_manager.get_ground_level()
 
 player = Player((SCREEN_WIDTH // 2 - 50, current_ground_level - 80))
 
+player.attack_damage = {
+    "smash": 15,
+    "thrust": 10
+}
+
 all_enemies = pygame.sprite.Group()
 spells = pygame.sprite.Group()
 
@@ -30,7 +35,7 @@ wave_definitions = [
     [(NightBorneEnemy, 1), (SkeletonEnemy, 2)]
 ]
 
-wave_manager = WaveManager(wave_definitions, all_enemies, SCREEN_WIDTH, current_ground_level, room_manager)
+wave_manager = None
 
 def draw_text(surface, text, pos, color=(255, 255, 255), size=36):
     font = pygame.font.SysFont(None, size)
@@ -43,6 +48,68 @@ def draw_health_bar(surface, player, pos=(20, 20), size=(200, 20)):
     pygame.draw.rect(surface, (0, 255, 0), (*pos, current_width, size[1]))
     pygame.draw.rect(surface, (255, 255, 255), (*pos, size[0], size[1]), 2)
 
+# ✅ Cria hitbox para THRUST — começa no centro do player
+def create_hitbox_thrust(player, length, height, offset_y=0):
+    if player.facing_right:
+        hitbox = pygame.Rect(
+            player.rect.centerx,
+            player.rect.centery - height // 2 + offset_y,
+            length,
+            height
+        )
+    else:
+        hitbox = pygame.Rect(
+            player.rect.centerx - length,
+            player.rect.centery - height // 2 + offset_y,
+            length,
+            height
+        )
+    return hitbox
+
+# ✅ Cria hitbox para SMASH — também começa no centro
+def create_hitbox_smash(player, width, height, offset_y=0):
+    if player.facing_right:
+        hitbox = pygame.Rect(
+            player.rect.centerx,
+            player.rect.top + offset_y,
+            width,
+            height
+        )
+    else:
+        hitbox = pygame.Rect(
+            player.rect.centerx - width,
+            player.rect.top + offset_y,
+            width,
+            height
+        )
+    return hitbox
+
+# ✅ Aplica dano se colidir
+def _apply_damage(hitbox, enemies, damage):
+    for enemy in enemies:
+        if hitbox.colliderect(enemy.rect):
+            if not enemy.recently_hit:
+                enemy.take_damage(damage)
+                enemy.recently_hit = True
+
+# ✅ Só causa dano se o golpe passar pela área real
+def check_player_attack(player, enemies):
+    if player.state in ["smash", "thrust"]:
+        damage = player.attack_damage[player.state]
+        current_frame = int(player.frame_index)
+
+        print(f"{player.state.capitalize()} frame: {current_frame}")
+
+        if player.state == "smash" and 8 <= current_frame <= 12:
+            hitbox = create_hitbox_smash(player, width=96, height=80, offset_y=20)
+            _apply_damage(hitbox, enemies, damage)
+            pygame.draw.rect(screen, (255, 0, 0), hitbox, 2)
+
+        elif player.state == "thrust" and current_frame == 6:
+            hitbox = create_hitbox_thrust(player, length=100, height=10, offset_y=0)
+            _apply_damage(hitbox, enemies, damage)
+            pygame.draw.rect(screen, (255, 0, 0), hitbox, 2)
+
 running = True
 while running:
     keys = pygame.key.get_pressed()
@@ -53,28 +120,45 @@ while running:
 
     current_ground_level = room_manager.get_ground_level()
 
-    # ✅ Sempre permitir o player se mover
+    if room_manager.current_room == 1:
+        player.speed = 7
+    elif room_manager.current_room == 2:
+        player.speed = 9
+    else:
+        player.speed = 7
+
     player.update(keys, current_ground_level, SCREEN_WIDTH)
 
-    # ✅ Atualizar waves sempre que houver inimigos ou uma wave em andamento
-    if len(all_enemies) > 0 or wave_manager.wave_in_progress:
-        wave_manager.update()
+    check_player_attack(player, all_enemies)
 
-    # ✅ Iniciar próxima wave automaticamente na sala 1
-    if not wave_manager.wave_in_progress and len(all_enemies) == 0 and room_manager.current_room == 1:
+    if player.state not in ["smash", "thrust"]:
+        for enemy in all_enemies:
+            enemy.recently_hit = False
+
+    if room_manager.current_room == 1 and wave_manager is None:
+        wave_manager = WaveManager(wave_definitions, all_enemies, SCREEN_WIDTH, current_ground_level, room_manager)
         wave_manager.start_next_wave()
 
-    # ✅ Troca de salas
+    if wave_manager:
+        if len(all_enemies) > 0 or wave_manager.wave_in_progress:
+            wave_manager.update()
+
+        if not wave_manager.wave_in_progress and len(all_enemies) == 0:
+            wave_manager.start_next_wave()
+
+    for enemy in all_enemies:
+        if room_manager.current_room == 2:
+            enemy.speed = 3
+        else:
+            enemy.speed = 2
+
     if player.rect.right >= SCREEN_WIDTH - 10:
-        if room_manager.current_room == 1:
-            if wave_manager.current_wave > len(wave_definitions):
-                room_manager.next_room()
-                current_ground_level = room_manager.get_ground_level()
-                player.rect.topleft = (50, current_ground_level - 80)
-        elif room_manager.current_room == 2:
-            room_manager.next_room()
-            current_ground_level = room_manager.get_ground_level()
-            player.rect.topleft = (50, current_ground_level - 80)
+        room_manager.next_room()
+        current_ground_level = room_manager.get_ground_level()
+        player.rect.topleft = (50, current_ground_level - 80)
+        if room_manager.current_room != 1:
+            wave_manager = None
+            all_enemies.empty()
 
     if room_manager.current_room == 0 and room_manager.player_at_door(player):
         if keys[pygame.K_e]:
@@ -87,14 +171,7 @@ while running:
     room_manager.draw_foreground(screen)
 
     for enemy in all_enemies:
-        if isinstance(enemy, BringerOfDeathEnemy):
-            enemy.update(player)
-            now = pygame.time.get_ticks()
-            if enemy.state == "cast" and now - enemy.last_attack_time < 500:
-                spell = SpellEffect(player.rect.center, enemy.animations["spell"])
-                spells.add(spell)
-        else:
-            enemy.update(player)
+        enemy.update(player)
         enemy.draw(screen)
 
     for spell in spells:
@@ -117,14 +194,19 @@ while running:
                   (SCREEN_WIDTH // 2 - 250, SCREEN_HEIGHT // 2), (255, 0, 0), size=40)
         if keys[pygame.K_r]:
             player = Player((SCREEN_WIDTH // 2 - 50, current_ground_level - 80))
+            player.attack_damage = {"smash": 15, "thrust": 10}
             player.health = player.max_health
             player.alive = True
-            wave_manager = WaveManager(wave_definitions, all_enemies, SCREEN_WIDTH, current_ground_level, room_manager)
+            wave_manager = None
             all_enemies.empty()
             spells.empty()
             room_manager.current_room = 0
 
     pygame.display.flip()
-    clock.tick(60)
+
+    if room_manager.current_room == 2:
+        clock.tick(90)
+    else:
+        clock.tick(60)
 
 pygame.quit()
