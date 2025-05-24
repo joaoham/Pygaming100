@@ -38,10 +38,10 @@ def draw_text(surface, text, pos, color=(255, 255, 255), size=36):
     surface.blit(text_surface, pos)
 
 def draw_health_bar(surface, player, pos=(20, 20), size=(200, 20)):
-    pygame.draw.rect(surface, (255, 0, 0), (*pos, size[0], size[1]))  # Fundo vermelho
+    pygame.draw.rect(surface, (255, 0, 0), (*pos, size[0], size[1]))
     current_width = size[0] * (player.health / player.max_health)
-    pygame.draw.rect(surface, (0, 255, 0), (*pos, current_width, size[1]))  # Barra verde
-    pygame.draw.rect(surface, (255, 255, 255), (*pos, size[0], size[1]), 2)  # Borda branca
+    pygame.draw.rect(surface, (0, 255, 0), (*pos, current_width, size[1]))
+    pygame.draw.rect(surface, (255, 255, 255), (*pos, size[0], size[1]), 2)
 
 running = True
 while running:
@@ -53,24 +53,25 @@ while running:
 
     current_ground_level = room_manager.get_ground_level()
 
-    if room_manager.can_move():
-        player.update(keys, current_ground_level, SCREEN_WIDTH)
-    else:
-        player.animate()
-        player.apply_gravity(current_ground_level)
+    # ✅ Sempre permitir o player se mover
+    player.update(keys, current_ground_level, SCREEN_WIDTH)
 
-    if room_manager.current_room == 1:
+    # ✅ Atualizar waves sempre que houver inimigos ou uma wave em andamento
+    if len(all_enemies) > 0 or wave_manager.wave_in_progress:
         wave_manager.update()
-        if not wave_manager.wave_in_progress and len(all_enemies) == 0:
-            wave_manager.start_next_wave()
 
+    # ✅ Iniciar próxima wave automaticamente na sala 1
+    if not wave_manager.wave_in_progress and len(all_enemies) == 0 and room_manager.current_room == 1:
+        wave_manager.start_next_wave()
+
+    # ✅ Troca de salas
     if player.rect.right >= SCREEN_WIDTH - 10:
         if room_manager.current_room == 1:
             if wave_manager.current_wave > len(wave_definitions):
                 room_manager.next_room()
                 current_ground_level = room_manager.get_ground_level()
                 player.rect.topleft = (50, current_ground_level - 80)
-        elif room_manager.current_room in [2]:
+        elif room_manager.current_room == 2:
             room_manager.next_room()
             current_ground_level = room_manager.get_ground_level()
             player.rect.topleft = (50, current_ground_level - 80)
@@ -109,13 +110,11 @@ while running:
             size=36
         )
 
-    # ✅ HUD de vida
     draw_health_bar(screen, player)
 
-    # ✅ Reset se player morrer
     if not player.alive:
         draw_text(screen, "Você morreu! Pressione R para reiniciar", 
-                  (SCREEN_WIDTH//2 - 250, SCREEN_HEIGHT//2), (255, 0, 0), size=40)
+                  (SCREEN_WIDTH // 2 - 250, SCREEN_HEIGHT // 2), (255, 0, 0), size=40)
         if keys[pygame.K_r]:
             player = Player((SCREEN_WIDTH // 2 - 50, current_ground_level - 80))
             player.health = player.max_health
