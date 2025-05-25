@@ -1,71 +1,76 @@
 import pygame
-import os
 
 class NightBorneEnemy(pygame.sprite.Sprite):
-    def __init__(self, pos):
+    def __init__(self, pos, sprite_sheet_path):
         super().__init__()
 
-        self.speed = 7
-        self.health = 150
-        self.damage = 20
-        self.attack_cooldown = 1000  # ms
-        self.last_attack_time = pygame.time.get_ticks()
-        self.facing_right = True
+        self.sprite_sheet = pygame.image.load(sprite_sheet_path).convert_alpha()
+        self.frame_width = 80
+        self.frame_height = 80
 
-        # ✅ Carrega a spritesheet
-        self.sheet = pygame.image.load('assets/enemies/nightborne/NightBorne.png').convert_alpha()
-
-        self.sheet_width, self.sheet_height = self.sheet.get_size()
-        self.frame_width = self.sheet_width // 32
-        self.frame_height = self.sheet_height // 5
-
-        # ✅ Animações: linha, num_frames
-        self.animation_data = {
-            "idle": (0, 9),
-            "run": (1, 6),
-            "attack": (2, 12),
-            "hurt": (3, 5),
-            "death": (4, 23),
-        }
-
+        # Linhas e frames
         self.animations = {
-            key: self.load_animation_from_spritesheet(row, frames)
-            for key, (row, frames) in self.animation_data.items()
+            "idle": self.load_animation(0, 9),
+            "run": self.load_animation(1, 6),
+            "attack": self.load_animation(2, 12),
+            "hurt": self.load_animation(3, 5),
+            "death": self.load_animation(4, 18)
         }
 
         self.state = "idle"
         self.frame_index = 0
-        self.animation_speed = 0.15
+        self.animation_speed = 0.3
         self.image = self.animations[self.state][int(self.frame_index)]
-        self.rect = self.image.get_rect(topleft=pos)
 
-    def load_animation_from_spritesheet(self, row, num_frames):
+        # ✅ MIDBOTTOM igual esqueleto!
+        self.rect = self.image.get_rect(midbottom=(pos[0], pos[1]))
+
+        self.speed = 9
+        self.health = 200
+        self.damage = 20
+        self.attack_cooldown = 500
+        self.last_attack_time = pygame.time.get_ticks()
+
+        self.facing_right = True
+        self.recently_hit = False
+        self.attacking = False
+        self.hurt = False
+
+    def load_animation(self, row, num_frames):
         frames = []
         for i in range(num_frames):
-            x = i * self.frame_width
-            y = row * self.frame_height
-            frame = self.sheet.subsurface(pygame.Rect(x, y, self.frame_width, self.frame_height))
+            frame = self.sprite_sheet.subsurface(pygame.Rect(
+                i * self.frame_width, 
+                row * self.frame_height, 
+                self.frame_width, 
+                self.frame_height
+            ))
             frame = pygame.transform.scale(frame, (self.frame_width * 2, self.frame_height * 2))
             frames.append(frame)
         return frames
 
     def update(self, player):
-        distance = player.rect.centerx - self.rect.centerx
-
-        if abs(distance) < 300 and self.health > 0:
-            self.state = "run"
-            direction = 1 if distance > 0 else -1
-            self.facing_right = direction > 0
-            self.rect.x += direction * self.speed
-
-            if abs(distance) < 50:
-                now = pygame.time.get_ticks()
-                if now - self.last_attack_time > self.attack_cooldown:
-                    self.state = "attack"
-                    self.attack(player)
-                    self.last_attack_time = now
+        if self.health <= 0:
+            self.state = "death"
+        elif self.hurt:
+            self.state = "hurt"
+        elif self.attacking:
+            self.state = "attack"
         else:
-            self.state = "idle"
+            distance = player.rect.centerx - self.rect.centerx
+            if abs(distance) < 400:
+                self.state = "run"
+                direction = 1 if distance > 0 else -1
+                self.facing_right = direction > 0
+                self.rect.x += direction * self.speed
+                if abs(distance) < 50:
+                    now = pygame.time.get_ticks()
+                    if now - self.last_attack_time > self.attack_cooldown:
+                        self.attacking = True
+                        self.last_attack_time = now
+                        self.attack(player)
+            else:
+                self.state = "idle"
 
         self.animate()
 
@@ -77,22 +82,28 @@ class NightBorneEnemy(pygame.sprite.Sprite):
         if self.health <= 0:
             self.state = "death"
         else:
-            self.state = "hurt"
+            self.hurt = True
+            self.frame_index = 0
 
     def animate(self):
         frames = self.animations[self.state]
         self.frame_index += self.animation_speed
         if self.frame_index >= len(frames):
             self.frame_index = 0
-            if self.state in ["attack", "hurt"]:
-                self.state = "idle"
+            if self.state == "attack":
+                self.attacking = False
+            if self.state == "hurt":
+                self.hurt = False
             if self.state == "death":
                 self.kill()
 
         image = frames[int(self.frame_index)]
         if not self.facing_right:
             image = pygame.transform.flip(image, True, False)
+
+        bottom = self.rect.bottom
         self.image = image
+        self.rect = self.image.get_rect(midbottom=(self.rect.centerx, bottom))
 
     def draw(self, surface):
         surface.blit(self.image, self.rect)

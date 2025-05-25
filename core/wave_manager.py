@@ -1,4 +1,4 @@
-import pygame
+from core.bringer import BringerOfDeathEnemy  # ✅ Importa o Bringer
 
 class WaveManager:
     def __init__(self, wave_definitions, all_enemies, screen_width, ground_level, room_manager):
@@ -14,20 +14,34 @@ class WaveManager:
         if self.current_wave <= len(self.wave_definitions):
             print(f"Iniciando Wave {self.current_wave}")
             wave = self.wave_definitions[self.current_wave - 1]
+
             for enemy_class, count in wave:
                 for i in range(count):
-                    spawn_x = self.screen_width - 100 - i * 50  
-                    spawn_y = 560  
-                    enemy = enemy_class((spawn_x, spawn_y))
-                    enemy.facing_right = False  
+                    spawn_x = self.screen_width - 150 - i * 100  # ✅ Mantém espaçamento
+
+                    if issubclass(enemy_class, BringerOfDeathEnemy):
+                        spawn_y = self.ground_level - 80  # ✅ Ajuste para o Bringer
+                        enemy = enemy_class((spawn_x, spawn_y), scale=1.0)
+                    else:
+                        # ✅ Correção para NightBorneEnemy
+                        if enemy_class.__name__ == "NightBorneEnemy":
+                            spawn_y = 660  # ✅ Ajuste para alinhar o NightBorne
+                            sprite_sheet_path = "assets/enemies/nightborne/NightBorne.png" 
+                            enemy = enemy_class((spawn_x, spawn_y), sprite_sheet_path)
+                        else:
+                            spawn_y = 560  # ✅ Padrão pros esqueletos
+                            enemy = enemy_class((spawn_x, spawn_y))
+
+                    enemy.facing_right = False
+                    enemy.recently_hit = False
                     self.all_enemies.add(enemy)
+
             self.wave_in_progress = True
         else:
             print("✅ Todas as waves concluídas!")
             self.room_manager.complete_waves()
 
     def update(self):
-        # Quando todos inimigos morrem, prepara próxima wave
         if self.wave_in_progress and len(self.all_enemies) == 0:
             print(f"✅ Wave {self.current_wave} concluída!")
             self.current_wave += 1
