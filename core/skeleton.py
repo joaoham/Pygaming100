@@ -17,7 +17,7 @@ class SkeletonEnemy(pygame.sprite.Sprite):
         self.image = self.animations[self.state][self.frame_index]
         self.rect = self.image.get_rect(topleft=pos)
         self.speed = 4
-        self.vision_range = 500
+        self.vision_range = 900
         self.health = 30
         self.damage = 5
         self.attack_cooldown = 1000

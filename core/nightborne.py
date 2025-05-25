@@ -1,45 +1,52 @@
 import pygame
+import os
 
 class NightBorneEnemy(pygame.sprite.Sprite):
     def __init__(self, pos):
         super().__init__()
 
+        self.speed = 7
+        self.health = 150
+        self.damage = 20
+        self.attack_cooldown = 1000  # ms
+        self.last_attack_time = pygame.time.get_ticks()
+        self.facing_right = True
+
+        # ✅ Carrega a spritesheet
+        self.sheet = pygame.image.load('assets/enemies/nightborne/NightBorne.png').convert_alpha()
+
+        self.sheet_width, self.sheet_height = self.sheet.get_size()
+        self.frame_width = self.sheet_width // 32
+        self.frame_height = self.sheet_height // 5
+
+        # ✅ Animações: linha, num_frames
         self.animation_data = {
-            "idle": ("assets/enemies/nightborne/NightBorne_Idle.png", 9),
-            "run": ("assets/enemies/nightborne/NightBorne_Run.png", 6),
-            "attack": ("assets/enemies/nightborne/NightBorne_Attack.png", 12),
-            "hurt": ("assets/enemies/nightborne/NightBorne_Hurt.png", 5),
-            "death": ("assets/enemies/nightborne/NightBorne_Death.png", 23),
+            "idle": (0, 9),
+            "run": (1, 6),
+            "attack": (2, 12),
+            "hurt": (3, 5),
+            "death": (4, 23),
         }
 
         self.animations = {
-            key: self.load_animation(path, frames)
-            for key, (path, frames) in self.animation_data.items()
+            key: self.load_animation_from_spritesheet(row, frames)
+            for key, (row, frames) in self.animation_data.items()
         }
 
         self.state = "idle"
         self.frame_index = 0
         self.animation_speed = 0.15
-        self.image = self.animations[self.state][self.frame_index]
+        self.image = self.animations[self.state][int(self.frame_index)]
         self.rect = self.image.get_rect(topleft=pos)
 
-        self.speed = 7  # Mais rápido que o player
-        self.health = 150
-        self.damage = 20
-        self.attack_cooldown = 1000  # ms
-        self.last_attack_time = pygame.time.get_ticks()
-
-        self.facing_right = True
-
-    def load_animation(self, sheet_path, num_frames):
-        sheet = pygame.image.load(sheet_path).convert_alpha()
-        sheet_width, sheet_height = sheet.get_size()
-        frame_width = sheet_width // num_frames
+    def load_animation_from_spritesheet(self, row, num_frames):
         frames = []
-
         for i in range(num_frames):
-            frame = sheet.subsurface(pygame.Rect(i * frame_width, 0, frame_width, sheet_height))
-            frames.append(pygame.transform.scale(frame, (80, 80)))  # Tamanho fixo
+            x = i * self.frame_width
+            y = row * self.frame_height
+            frame = self.sheet.subsurface(pygame.Rect(x, y, self.frame_width, self.frame_height))
+            frame = pygame.transform.scale(frame, (self.frame_width * 2, self.frame_height * 2))
+            frames.append(frame)
         return frames
 
     def update(self, player):
