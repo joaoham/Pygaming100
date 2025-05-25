@@ -12,11 +12,17 @@ class SpellEffect(pygame.sprite.Sprite):
         self.damage = damage
         self.has_hit = False  # ✅ Controle se já causou dano
 
+        # ✅ Ajuste: hitbox menor para evitar dano "invisível"
+        self.hitbox = self.rect.inflate(-20, -20)  # Ajusta conforme necessário
+
     def update(self, player):
-        # ✅ Verifica colisão e causa dano se ainda não causou
-        if not self.has_hit and self.rect.colliderect(player.rect):
+        # ✅ Colisão com hitbox ajustada
+        if not self.has_hit and self.hitbox.colliderect(player.rect):
             player.take_damage(self.damage)
             self.has_hit = True  # ✅ Evita dano repetido
+
+        # ✅ Mantém a hitbox acompanhando a posição
+        self.hitbox.center = self.rect.center
 
         # Animação
         self.frame_index += self.animation_speed

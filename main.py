@@ -10,15 +10,12 @@ from core.spell_effect import SpellEffect
 pygame.init()
 
 SCREEN_WIDTH, SCREEN_HEIGHT = 1280, 720
-
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption("Hollow Mooni - Room System")
-
 clock = pygame.time.Clock()
 
 room_manager = RoomManager(SCREEN_WIDTH, SCREEN_HEIGHT)
 current_ground_level = room_manager.get_ground_level()
-
 player = Player((SCREEN_WIDTH // 2 - 50, current_ground_level - 80))
 
 player.attack_damage = {
@@ -48,43 +45,20 @@ def draw_health_bar(surface, player, pos=(20, 20), size=(200, 20)):
     pygame.draw.rect(surface, (0, 255, 0), (*pos, current_width, size[1]))
     pygame.draw.rect(surface, (255, 255, 255), (*pos, size[0], size[1]), 2)
 
-# ✅ Cria hitbox para THRUST — começa no centro do player
 def create_hitbox_thrust(player, length, height, offset_y=0):
     if player.facing_right:
-        hitbox = pygame.Rect(
-            player.rect.centerx,
-            player.rect.centery - height // 2 + offset_y,
-            length,
-            height
-        )
+        hitbox = pygame.Rect(player.rect.centerx, player.rect.centery - height // 2 + offset_y, length, height)
     else:
-        hitbox = pygame.Rect(
-            player.rect.centerx - length,
-            player.rect.centery - height // 2 + offset_y,
-            length,
-            height
-        )
+        hitbox = pygame.Rect(player.rect.centerx - length, player.rect.centery - height // 2 + offset_y, length, height)
     return hitbox
 
-# ✅ Cria hitbox para SMASH — também começa no centro
 def create_hitbox_smash(player, width, height, offset_y=0):
     if player.facing_right:
-        hitbox = pygame.Rect(
-            player.rect.centerx,
-            player.rect.top + offset_y,
-            width,
-            height
-        )
+        hitbox = pygame.Rect(player.rect.centerx, player.rect.top + offset_y, width, height)
     else:
-        hitbox = pygame.Rect(
-            player.rect.centerx - width,
-            player.rect.top + offset_y,
-            width,
-            height
-        )
+        hitbox = pygame.Rect(player.rect.centerx - width, player.rect.top + offset_y, width, height)
     return hitbox
 
-# ✅ Aplica dano se colidir
 def _apply_damage(hitbox, enemies, damage):
     for enemy in enemies:
         if hitbox.colliderect(enemy.rect):
@@ -92,7 +66,6 @@ def _apply_damage(hitbox, enemies, damage):
                 enemy.take_damage(damage)
                 enemy.recently_hit = True
 
-# ✅ Só causa dano se o golpe passar pela área real
 def check_player_attack(player, enemies):
     if player.state in ["smash", "thrust"]:
         damage = player.attack_damage[player.state]
@@ -171,7 +144,10 @@ while running:
     room_manager.draw_foreground(screen)
 
     for enemy in all_enemies:
-        enemy.update(player)
+        if isinstance(enemy, BringerOfDeathEnemy):
+            enemy.update(player, spells)
+        else:
+            enemy.update(player)
         enemy.draw(screen)
 
     for spell in spells:
@@ -179,18 +155,14 @@ while running:
         spell.draw(screen)
 
     if room_manager.current_room == 0 and room_manager.player_at_door(player):
-        draw_text(
-            screen,
-            "Pressione E para entrar no castelo",
-            (SCREEN_WIDTH // 2 - 200, current_ground_level - 600),
-            color=(255, 255, 0),
-            size=36
-        )
+        draw_text(screen, "Pressione E para entrar no castelo",
+                  (SCREEN_WIDTH // 2 - 200, current_ground_level - 600),
+                  color=(255, 255, 0), size=36)
 
     draw_health_bar(screen, player)
 
     if not player.alive:
-        draw_text(screen, "Você morreu! Pressione R para reiniciar", 
+        draw_text(screen, "Você morreu! Pressione R para reiniciar",
                   (SCREEN_WIDTH // 2 - 250, SCREEN_HEIGHT // 2), (255, 0, 0), size=40)
         if keys[pygame.K_r]:
             player = Player((SCREEN_WIDTH // 2 - 50, current_ground_level - 80))
