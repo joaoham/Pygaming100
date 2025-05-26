@@ -23,7 +23,9 @@ class Player(pygame.sprite.Sprite):
         self.frame_index = 0
         self.animation_speed = 0.30
         self.image = self.animations[self.state][self.frame_index]
-        self.rect = self.image.get_rect(topleft=pos)
+
+        # ✅ Ajustado: usa explicitamente a primeira frame do idle para setar o rect.
+        self.rect = self.animations["idle"][0].get_rect(topleft=pos)
 
         self.vel = pygame.math.Vector2(0, 0)
         self.speed = 5
@@ -36,6 +38,13 @@ class Player(pygame.sprite.Sprite):
         self.health = self.max_health
         self.alive = True
 
+        self.ground_offset = 0
+
+        self.attack_damage = {
+            "smash": 15,
+            "thrust": 10
+        }
+
     def load_animation(self, sheet_path, num_frames):
         sheet = pygame.image.load(sheet_path).convert_alpha()
         frame_width = sheet.get_width() // num_frames
@@ -47,7 +56,7 @@ class Player(pygame.sprite.Sprite):
         if keys[pygame.K_a]:
             self.vel.x = -self.speed
             self.state = "run"
-            self.facing_right = False  # ✅ CORRIGIDO
+            self.facing_right = False
         elif keys[pygame.K_d]:
             self.vel.x = self.speed
             self.state = "run"
@@ -70,8 +79,8 @@ class Player(pygame.sprite.Sprite):
     def apply_gravity(self, ground_level):
         self.vel.y += self.gravity
         self.rect.y += self.vel.y
-        if self.rect.bottom >= ground_level:
-            self.rect.bottom = ground_level
+        if self.rect.bottom >= ground_level - self.ground_offset:
+            self.rect.bottom = ground_level - self.ground_offset
             self.on_ground = True
             self.vel.y = 0
 

@@ -8,7 +8,6 @@ class NightBorneEnemy(pygame.sprite.Sprite):
         self.frame_width = 80
         self.frame_height = 80
 
-        # Linhas e frames
         self.animations = {
             "idle": self.load_animation(0, 9),
             "run": self.load_animation(1, 6),
@@ -19,16 +18,16 @@ class NightBorneEnemy(pygame.sprite.Sprite):
 
         self.state = "idle"
         self.frame_index = 0
-        self.animation_speed = 0.3
+        self.animation_speed = 0.15
         self.image = self.animations[self.state][int(self.frame_index)]
 
-        # ✅ MIDBOTTOM igual esqueleto!
+        # ✅ midbottom para alinhar corretamente com o chão
         self.rect = self.image.get_rect(midbottom=(pos[0], pos[1]))
 
-        self.speed = 9
-        self.health = 200
+        self.speed = 7
+        self.health = 50
         self.damage = 20
-        self.attack_cooldown = 500
+        self.attack_cooldown = 1000
         self.last_attack_time = pygame.time.get_ticks()
 
         self.facing_right = True
@@ -45,6 +44,7 @@ class NightBorneEnemy(pygame.sprite.Sprite):
                 self.frame_width, 
                 self.frame_height
             ))
+            # ✅ Mantém a escala original OU ajusta aqui
             frame = pygame.transform.scale(frame, (self.frame_width * 2, self.frame_height * 2))
             frames.append(frame)
         return frames
@@ -101,9 +101,14 @@ class NightBorneEnemy(pygame.sprite.Sprite):
         if not self.facing_right:
             image = pygame.transform.flip(image, True, False)
 
+        # ✅ MANTÉM midbottom, não deixa mexer a posição
         bottom = self.rect.bottom
+        centerx = self.rect.centerx
         self.image = image
-        self.rect = self.image.get_rect(midbottom=(self.rect.centerx, bottom))
+        self.rect = self.image.get_rect(midbottom=(centerx, bottom))
+
+        # ✅ (OPCIONAL) Encolhe a hitbox para não pegar de longe
+        # self.rect.inflate_ip(-20, -20)
 
     def draw(self, surface):
         surface.blit(self.image, self.rect)
