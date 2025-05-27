@@ -52,7 +52,7 @@ class KnightBoss(pygame.sprite.Sprite):
         self.speed = 2
         self.attack_range = 100
         self.last_attack_time = 0
-        self.attack_cooldown = 2000
+        self.attack_cooldown = 1500
 
         self.current_hitbox = None
         self.has_hit_player = False
