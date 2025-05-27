@@ -28,7 +28,7 @@ class Player(pygame.sprite.Sprite):
         self.rect = self.animations["idle"][0].get_rect(topleft=pos)
 
         self.vel = pygame.math.Vector2(0, 0)
-        self.speed = 5
+        self.speed = 3
         self.gravity = 2.5
         self.jump_speed = -25
         self.on_ground = True
