@@ -37,7 +37,7 @@ class Player(pygame.sprite.Sprite):
         self.on_ground = True
         self.facing_right = True
 
-        self.max_health = 100
+        self.max_health = 125
         self.health = self.max_health
         self.alive = True
 
