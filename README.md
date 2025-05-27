@@ -79,7 +79,7 @@ HollowMooni/
 │  ├─ knight_boss.py
 │  ├─ room_manager.py
 │  └─ ...
-├─ requirements.txt
+├─ README.md
 └─ main.py  ← arquivo a executar
 ```
 
