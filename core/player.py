@@ -5,6 +5,9 @@ class Player(pygame.sprite.Sprite):
     def __init__(self, pos):
         super().__init__()
 
+        self.sword_thrust_sound = pygame.mixer.Sound("assets/sounds/thrust.mp3")
+        self.sword_smash_sound = pygame.mixer.Sound("assets/sounds/smash.mp3")
+
         self.animation_data = {
             "idle": ("assets/player/Little Mooni-Idle.png", 8),
             "run": ("assets/player/Little Mooni-Run.png", 8),
@@ -21,7 +24,7 @@ class Player(pygame.sprite.Sprite):
 
         self.state = "idle"
         self.frame_index = 0
-        self.animation_speed = 0.30
+        self.animation_speed = 0.15
         self.image = self.animations[self.state][self.frame_index]
 
         # ✅ Ajustado: usa explicitamente a primeira frame do idle para setar o rect.
@@ -29,7 +32,7 @@ class Player(pygame.sprite.Sprite):
 
         self.vel = pygame.math.Vector2(0, 0)
         self.speed = 3
-        self.gravity = 2.5
+        self.gravity = 1.5
         self.jump_speed = -25
         self.on_ground = True
         self.facing_right = True
@@ -68,8 +71,10 @@ class Player(pygame.sprite.Sprite):
 
         if keys[pygame.K_r]:
             self.state = "smash"
+            self.sword_smash_sound.play()
         if keys[pygame.K_q]:
             self.state = "thrust"
+            self.sword_thrust_sound.play()
         if keys[pygame.K_f]:
             self.state = "heal"
         if keys[pygame.K_SPACE] and self.on_ground:
