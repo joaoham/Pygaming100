@@ -12,7 +12,6 @@ pygame.init()
 pygame.mixer.init()
 
 caminhomusica = 'assets/sounds/backgroundprinci.mp3'
-
 pygame.mixer.music.load(caminhomusica)
 pygame.mixer.music.set_volume(0.5)
 pygame.mixer.music.play(-1)
@@ -22,16 +21,24 @@ screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption("Hollow Mooni - Room System")
 clock = pygame.time.Clock()
 
+# ====== SISTEMA DE TELA INICIAL ======
+game_state = -1  # -1 = Tela Inicial, 0 = Jogo
+
+start_screen = pygame.image.load('assets/background/telainicial.png') 
+start_screen = pygame.transform.scale(start_screen, (SCREEN_WIDTH, SCREEN_HEIGHT))
+font = pygame.font.SysFont(None, 60)
+button_text = font.render('INICIAR', True, (255, 255, 255))
+button_rect = button_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT - 100))
+
+# ====== JOGO NORMAL SETUP ======
 room_manager = RoomManager(SCREEN_WIDTH, SCREEN_HEIGHT)
 current_ground_level = room_manager.get_ground_level()
-
 player = Player((SCREEN_WIDTH - 250, current_ground_level - 100))
 player.rect.bottom = current_ground_level
 player.attack_damage = {"smash": 15, "thrust": 10}
 
 all_enemies = pygame.sprite.Group()
 spells = pygame.sprite.Group()
-
 wave_definitions = [
     [(SkeletonEnemy, 3)],
     [(SkeletonEnemy, 2), (BringerOfDeathEnemy, 1)],
@@ -44,7 +51,6 @@ boss = None
 boss_group = None
 boss_intro_time = None
 player_can_move = True
-
 boss_dialogue = [
     "Este reino... foi amaldiçoado...",
     "Eu era o melhor amigo do rei... minha missão era salvá-lo...",
@@ -103,143 +109,170 @@ def check_player_attack(player, enemies):
 running = True
 while running:
     keys = pygame.key.get_pressed()
+    
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
 
-    current_ground_level = room_manager.get_ground_level()
+        # Clique na tela inicial
+        if game_state == -1 and event.type == pygame.MOUSEBUTTONDOWN:
+            if button_rect.collidepoint(event.pos):
+                game_state = 0  # Começa o jogo
 
-    if player_can_move:
-        player.update(keys, current_ground_level, SCREEN_WIDTH)
+    if game_state == -1:
+        # TELA INICIAL
+        screen.blit(start_screen, (0, 0))
+        button_color = (30, 60, 60)  # azul petróleo meio esverdeado igual ao fundo da ti
+        button_hover_color = (50, 80, 80)  # mais claro ao passar o mouse
 
-    check_player_attack(player, all_enemies)
+        mouse_pos = pygame.mouse.get_pos()
 
-    if boss and player.state in ["smash", "thrust"]:
-        damage = player.attack_damage[player.state]
-        current_frame = int(player.frame_index)
+            # Detecta se o mouse está sobre o botão
+        if button_rect.collidepoint(mouse_pos):
+            color = button_hover_color
+        else:
+            color = button_color
 
-        if player.state == "smash" and 8 <= current_frame <= 12:
-            if create_hitbox_smash(player, 96, 80, 20).colliderect(boss.rect):
-                boss.take_damage(damage)
-        elif player.state == "thrust" and current_frame == 6:
-            if create_hitbox_thrust(player, 100, 10).colliderect(boss.rect):
-                boss.take_damage(damage)
+            # Desenha o botão com bordas arredondadas
+        pygame.draw.rect(screen, color, button_rect.inflate(30, 15), border_radius=10)
 
-    if player.state not in ["smash", "thrust"]:
-        for enemy in all_enemies:
-            enemy.recently_hit = False
+            # Desenha o texto branco por cima
+        screen.blit(button_text, button_rect)
 
-    if room_manager.current_room == 1 and wave_manager is None:
-        wave_manager = WaveManager(wave_definitions, all_enemies, SCREEN_WIDTH, current_ground_level, room_manager)
-        wave_manager.start_next_wave()
-        waves_completed = False
+    else:
+        # ====== SEU JOGO NORMAL SEM ALTERAR ======
+        current_ground_level = room_manager.get_ground_level()
 
-    if wave_manager:
-        if len(all_enemies) > 0 or wave_manager.wave_in_progress:
-            wave_manager.update()
+        if player_can_move:
+            player.update(keys, current_ground_level, SCREEN_WIDTH)
 
-        if (not wave_manager.wave_in_progress and len(all_enemies) == 0 and wave_manager.current_wave <= len(wave_definitions)):
+        check_player_attack(player, all_enemies)
+
+        if boss and player.state in ["smash", "thrust"]:
+            damage = player.attack_damage[player.state]
+            current_frame = int(player.frame_index)
+
+            if player.state == "smash" and 8 <= current_frame <= 12:
+                if create_hitbox_smash(player, 96, 80, 20).colliderect(boss.rect):
+                    boss.take_damage(damage)
+            elif player.state == "thrust" and current_frame == 6:
+                if create_hitbox_thrust(player, 100, 10).colliderect(boss.rect):
+                    boss.take_damage(damage)
+
+        if player.state not in ["smash", "thrust"]:
+            for enemy in all_enemies:
+                enemy.recently_hit = False
+
+        if room_manager.current_room == 1 and wave_manager is None:
+            wave_manager = WaveManager(wave_definitions, all_enemies, SCREEN_WIDTH, current_ground_level, room_manager)
             wave_manager.start_next_wave()
+            waves_completed = False
 
-        if (not waves_completed and wave_manager.current_wave > len(wave_definitions) and len(all_enemies) == 0):
-            print("✅ Todas as waves concluídas!")
-            waves_completed = True
+        if wave_manager:
+            if len(all_enemies) > 0 or wave_manager.wave_in_progress:
+                wave_manager.update()
 
-    for enemy in all_enemies:
-        enemy.speed = 3 if room_manager.current_room == 2 else 2
+            if (not wave_manager.wave_in_progress and len(all_enemies) == 0 and wave_manager.current_wave <= len(wave_definitions)):
+                wave_manager.start_next_wave()
 
-    if wave_manager and wave_manager.current_wave > len(wave_definitions):
-        draw_text(screen, "Pressione E para avançar para o pátio", (SCREEN_WIDTH // 2 - 200, current_ground_level - 100), (255, 255, 0), 36)
+            if (not waves_completed and wave_manager.current_wave > len(wave_definitions) and len(all_enemies) == 0):
+                print("✅ Todas as waves concluídas!")
+                waves_completed = True
 
-        if keys[pygame.K_e]:
-            room_manager.next_room()
-            current_ground_level = room_manager.get_ground_level()
-            player.rect.bottom = current_ground_level
-            player.health = player.max_health
-            wave_manager = None
-            all_enemies.empty()
+        for enemy in all_enemies:
+            enemy.speed = 3 if room_manager.current_room == 2 else 2
 
-            if room_manager.current_room == 2:
-                boss = KnightBoss((SCREEN_WIDTH // 2 - 100, current_ground_level - 100), current_ground_level)
-                boss.rect.bottom = current_ground_level
-                boss.rect.y = player.rect.y
-                boss.state = "pray"
-                boss.passive = True
-                boss.animation_index = 3
-                boss_group = pygame.sprite.GroupSingle(boss)
-                boss_intro_time = pygame.time.get_ticks()
-                dialogue_start_time = boss_intro_time
-                player_can_move, current_dialogue_index = False, 0
+        if wave_manager and wave_manager.current_wave > len(wave_definitions):
+            draw_text(screen, "Pressione E para avançar para o pátio", (SCREEN_WIDTH // 2 - 200, current_ground_level - 100), (255, 255, 0), 36)
 
-    if room_manager.current_room == 0 and room_manager.player_at_door(player):
-        if keys[pygame.K_e]:
-            room_manager.next_room()
-            player.rect.bottom = room_manager.get_ground_level()
-
-    room_manager.draw_room(screen)
-    player.draw(screen)
-    room_manager.draw_foreground(screen)
-
-    for enemy in all_enemies:
-        if isinstance(enemy, BringerOfDeathEnemy):
-            enemy.update(player, spells)
-        else:
-            enemy.update(player)
-        enemy.draw(screen)
-
-    for spell in spells:
-        spell.update(player)
-        spell.draw(screen)
-
-    if room_manager.current_room == 0 and room_manager.player_at_door(player):
-        draw_text(screen, "Pressione E para entrar no castelo", (SCREEN_WIDTH // 2 - 200, current_ground_level - 100), (255, 255, 0), 36)
-
-    if room_manager.current_room == 2 and boss:
-        current_time = pygame.time.get_ticks()
-
-        if boss.passive:
-            boss.state, boss.animation_index = "pray", 3
-            boss.image = boss.animations[boss.state][boss.animation_index]
-
-            if current_dialogue_index < len(boss_dialogue):
-                draw_text(screen, boss_dialogue[current_dialogue_index], (SCREEN_WIDTH // 2 - 300, current_ground_level - 150), color=(255, 255, 255), size=30)
-                if current_time - dialogue_start_time > 2000:
-                    current_dialogue_index += 1
-                    dialogue_start_time = current_time
-            else:
-                boss.passive, boss.state, boss.dialogue_done = False, "idle", True
-                player_can_move = True
-        else:
-            boss_group.update(player, clock.get_time())
-            boss.check_attack_collision(player)
-
-        boss.draw(screen)
-        draw_boss_health_bar(screen, boss)
-
-        if boss.hp <= 0 and boss.state == "death":
-            draw_text(screen, "Você venceu o Boss! Parabéns!", (SCREEN_WIDTH // 2 - 200, SCREEN_HEIGHT // 2), (0, 255, 0), 40)
-            draw_text(screen, "Pressione E para encerrar", (SCREEN_WIDTH // 2 - 150, SCREEN_HEIGHT // 2 + 50), (255, 255, 255), 30)
             if keys[pygame.K_e]:
-                running = False
+                room_manager.next_room()
+                current_ground_level = room_manager.get_ground_level()
+                player.rect.bottom = current_ground_level
+                player.health = player.max_health
+                wave_manager = None
+                all_enemies.empty()
 
-    draw_health_bar(screen, player)
+                if room_manager.current_room == 2:
+                    boss = KnightBoss((SCREEN_WIDTH // 2 - 100, current_ground_level - 100), current_ground_level)
+                    boss.rect.bottom = current_ground_level
+                    boss.rect.y = player.rect.y
+                    boss.state = "pray"
+                    boss.passive = True
+                    boss.animation_index = 3
+                    boss_group = pygame.sprite.GroupSingle(boss)
+                    boss_intro_time = pygame.time.get_ticks()
+                    dialogue_start_time = boss_intro_time
+                    player_can_move, current_dialogue_index = False, 0
 
-    if not player.alive:
-        draw_text(screen, "Você morreu! Pressione R para reiniciar", (SCREEN_WIDTH // 2 - 250, SCREEN_HEIGHT // 2), (255, 0, 0), 40)
-        if keys[pygame.K_r]:
-            player = Player((SCREEN_WIDTH - 250, current_ground_level - 100))
-            player.rect.bottom = current_ground_level
-            player.attack_damage = {"smash": 15, "thrust": 10}
-            player.health, player.alive = player.max_health, True
-            wave_manager = None
-            all_enemies.empty()
-            spells.empty()
-            room_manager.current_room = 0
-            boss, boss_group, boss_intro_time = None, None, None
-            player_can_move, current_dialogue_index, waves_completed = True, 0, False
+        if room_manager.current_room == 0 and room_manager.player_at_door(player):
+            if keys[pygame.K_e]:
+                room_manager.next_room()
+                player.rect.bottom = room_manager.get_ground_level()
+
+        room_manager.draw_room(screen)
+        player.draw(screen)
+        room_manager.draw_foreground(screen)
+
+        for enemy in all_enemies:
+            if isinstance(enemy, BringerOfDeathEnemy):
+                enemy.update(player, spells)
+            else:
+                enemy.update(player)
+            enemy.draw(screen)
+
+        for spell in spells:
+            spell.update(player)
+            spell.draw(screen)
+
+        if room_manager.current_room == 0 and room_manager.player_at_door(player):
+            draw_text(screen, "Pressione E para entrar no castelo", (SCREEN_WIDTH // 2 - 200, current_ground_level - 100), (255, 255, 0), 36)
+
+        if room_manager.current_room == 2 and boss:
+            current_time = pygame.time.get_ticks()
+
+            if boss.passive:
+                boss.state, boss.animation_index = "pray", 3
+                boss.image = boss.animations[boss.state][boss.animation_index]
+
+                if current_dialogue_index < len(boss_dialogue):
+                    draw_text(screen, boss_dialogue[current_dialogue_index], (SCREEN_WIDTH // 2 - 300, current_ground_level - 150), color=(255, 255, 255), size=30)
+                    if current_time - dialogue_start_time > 2000:
+                        current_dialogue_index += 1
+                        dialogue_start_time = current_time
+                else:
+                    boss.passive, boss.state, boss.dialogue_done = False, "idle", True
+                    player_can_move = True
+            else:
+                boss_group.update(player, clock.get_time())
+                boss.check_attack_collision(player)
+
+            boss.draw(screen)
+            draw_boss_health_bar(screen, boss)
+
+            if boss.hp <= 0 and boss.state == "death":
+                draw_text(screen, "Você venceu o Boss! Parabéns!", (SCREEN_WIDTH // 2 - 200, SCREEN_HEIGHT // 2), (0, 255, 0), 40)
+                draw_text(screen, "Pressione E para encerrar", (SCREEN_WIDTH // 2 - 150, SCREEN_HEIGHT // 2 + 50), (255, 255, 255), 30)
+                if keys[pygame.K_e]:
+                    running = False
+
+        draw_health_bar(screen, player)
+
+        if not player.alive:
+            draw_text(screen, "Você morreu! Pressione R para reiniciar", (SCREEN_WIDTH // 2 - 250, SCREEN_HEIGHT // 2), (255, 0, 0), 40)
+            if keys[pygame.K_r]:
+                player = Player((SCREEN_WIDTH - 250, current_ground_level - 100))
+                player.rect.bottom = current_ground_level
+                player.attack_damage = {"smash": 15, "thrust": 10}
+                player.health, player.alive = player.max_health, True
+                wave_manager = None
+                all_enemies.empty()
+                spells.empty()
+                room_manager.current_room = 0
+                boss, boss_group, boss_intro_time = None, None, None
+                player_can_move, current_dialogue_index, waves_completed = True, 0, False
 
     pygame.display.flip()
-
-    clock.tick(90 if room_manager.current_room == 2 else 60)
+    clock.tick(90 if game_state == 0 and room_manager.current_room == 2 else 60)
 
 pygame.quit()
