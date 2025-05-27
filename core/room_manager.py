@@ -4,9 +4,9 @@ class RoomManager:
     def __init__(self, screen_width, screen_height):
         self.rooms = [
             {
-                "background": "assets/background/tela1.png",
+                "background": "assets/background/tela1true.png",
                 "movement": True,
-                "ground_level": 690
+                "ground_level": 800
             },
             {
                 "background": "assets/background/background_passarela.png",
