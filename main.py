@@ -1,3 +1,20 @@
+"""
+Módulo principal do jogo **Hollow Mooni**.
+
+Aqui rola todo o fluxo do game: inicialização do Pygame, estados de tela
+(menu inicial, lore e gameplay), gerenciamento de salas (`RoomManager`),
+ondas de inimigos (`WaveManager`) e o combate contra o chefe final
+(`KnightBoss`).  
+Execução típica (a partir da raiz do projeto):
+
+    $ python main.py
+
+Requisitos:
+-----------
+- Estrutura de diretórios descrita no README (assets/, core/, etc.).
+- Pygame instalado (`pip install pygame`).
+"""
+
 import pygame
 from core.player import Player
 from core.room_manager import RoomManager
@@ -26,13 +43,24 @@ screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption("Hollow Mooni - Room System")
 clock = pygame.time.Clock()
 
+
 # =============== POSICIONAMENTO ====================
 def position_player_for_room(room_id, player):
-    """Define a posição X de spawn por sala."""
+    """
+    Posiciona o jogador na coordenada X correta ao entrar em cada sala.
+
+    Parâmetros
+    ----------
+    room_id : int
+        ID numérico da sala (0, 1, 2…).
+    player : Player
+        Instância do jogador cuja posição será modificada.
+    """
     if room_id == 0:
         player.rect.centerx = SCREEN_WIDTH // 2 - PLAYER_CENTER_OFFSET
     else:                      # salas 1 e 2
         player.rect.left = 50
+
 
 # =============== TELA INICIAL ======================
 game_state = -2  # -2: start screen | -1: lore | 0+: jogo
@@ -96,48 +124,180 @@ boss_dialogue = [
 current_dialogue_index = 0
 dialogue_start_time = None
 
+
 # =============== FUNÇÕES AUXILIARES ================
 def draw_text(surface, text, pos, color=(255, 255, 255), size=36):
+    """
+    Desenha texto simples na tela.
+
+    Parameters
+    ----------
+    surface : pygame.Surface
+        Onde o texto será renderizado.
+    text : str
+        Conteúdo a ser exibido.
+    pos : tuple[int, int]
+        Coordenadas (x, y) no `surface`.
+    color : tuple[int, int, int], opcional
+        Cor RGB do texto.
+    size : int, opcional
+        Tamanho da fonte.
+    """
     surface.blit(pygame.font.SysFont(None, size).render(text, True, color), pos)
 
+
 def draw_health_bar(surface, player, pos=(20, 20), size=(200, 20)):
+    """
+    Desenha a barra de vida do jogador.
+
+    Parameters
+    ----------
+    surface : pygame.Surface
+        Tela ou subsuperfície de destino.
+    player : Player
+        Instância do jogador (precisa ter `health` e `max_health`).
+    pos : tuple[int, int], opcional
+        Posição da barra.
+    size : tuple[int, int], opcional
+        Largura e altura da barra.
+    """
     pygame.draw.rect(surface, (255, 0, 0), (*pos, *size))
-    pygame.draw.rect(surface, (0, 255, 0),
-                     (*pos, size[0] * (player.health / player.max_health), size[1]))
+    pygame.draw.rect(
+        surface,
+        (0, 255, 0),
+        (*pos, size[0] * (player.health / player.max_health), size[1]),
+    )
     pygame.draw.rect(surface, (255, 255, 255), (*pos, *size), 2)
+
 
 def draw_boss_health_bar(surface, boss, pos=(SCREEN_WIDTH // 2 - 150, 20), size=(300, 20)):
+    """
+    Desenha a barra de vida do chefe.
+
+    Parameters
+    ----------
+    surface : pygame.Surface
+        Tela ou subsuperfície de destino.
+    boss : KnightBoss
+        Instância do chefe (precisa ter `hp`).
+    pos : tuple[int, int], opcional
+        Posição da barra.
+    size : tuple[int, int], opcional
+        Largura e altura da barra.
+    """
     pygame.draw.rect(surface, (255, 0, 0), (*pos, *size))
-    pygame.draw.rect(surface, (0, 255, 0),
-                     (*pos, size[0] * (boss.hp / 200), size[1]))
+    pygame.draw.rect(
+        surface,
+        (0, 255, 0),
+        (*pos, size[0] * (boss.hp / 200), size[1]),
+    )
     pygame.draw.rect(surface, (255, 255, 255), (*pos, *size), 2)
 
+
 def hitbox_thrust(player, length, height, offset_y=0):
+    """
+    Retorna um `pygame.Rect` representando a área de dano do ataque *thrust*.
+
+    Parameters
+    ----------
+    player : Player
+        Jogador executando o ataque.
+    length : int
+        Comprimento horizontal do hitbox.
+    height : int
+        Altura vertical do hitbox.
+    offset_y : int, opcional
+        Deslocamento vertical adicional.
+
+    Returns
+    -------
+    pygame.Rect
+        Retângulo de colisão do ataque.
+    """
     if player.facing_right:
-        return pygame.Rect(player.rect.centerx, player.rect.centery - height // 2 + offset_y,
-                           length, height)
-    return pygame.Rect(player.rect.centerx - length, player.rect.centery - height // 2 + offset_y,
-                       length, height)
+        return pygame.Rect(
+            player.rect.centerx,
+            player.rect.centery - height // 2 + offset_y,
+            length,
+            height,
+        )
+    return pygame.Rect(
+        player.rect.centerx - length,
+        player.rect.centery - height // 2 + offset_y,
+        length,
+        height,
+    )
+
 
 def hitbox_smash(player, width, height, offset_y=0):
+    """
+    Retorna um `pygame.Rect` representando a área de dano do ataque *smash*.
+
+    Parameters
+    ----------
+    player : Player
+        Jogador executando o ataque.
+    width : int
+        Largura do hitbox.
+    height : int
+        Altura do hitbox.
+    offset_y : int, opcional
+        Deslocamento vertical adicional.
+
+    Returns
+    -------
+    pygame.Rect
+        Retângulo de colisão do ataque.
+    """
     if player.facing_right:
         return pygame.Rect(player.rect.centerx, player.rect.top + offset_y, width, height)
-    return pygame.Rect(player.rect.centerx - width, player.rect.top + offset_y, width, height)
+    return pygame.Rect(
+        player.rect.centerx - width, player.rect.top + offset_y, width, height
+    )
+
 
 def apply_damage(hitbox, enemies, damage):
+    """
+    Aplica dano aos inimigos que colidem com o `hitbox`.
+
+    Parameters
+    ----------
+    hitbox : pygame.Rect
+        Retângulo de colisão do ataque.
+    enemies : pygame.sprite.Group
+        Grupo com instâncias de inimigos.
+    damage : int
+        Quantidade de dano a ser aplicada.
+    """
     for enemy in enemies:
         if hitbox.colliderect(enemy.rect) and not enemy.recently_hit:
             enemy.take_damage(damage)
             enemy.recently_hit = True
 
+
 def check_player_attack(player, enemies):
+    """
+    Verifica se o jogador acertou algum inimigo no frame atual.
+
+    Deve ser chamada uma vez por frame após `player.update()`.
+
+    Parameters
+    ----------
+    player : Player
+        Jogador em ação.
+    enemies : pygame.sprite.Group
+        Grupo de inimigos suscetíveis a levar dano.
+    """
     if player.state in ("smash", "thrust"):
         dmg = player.attack_damage[player.state]
         frame = int(player.frame_index)
+
         if player.state == "smash" and 8 <= frame <= 12:
             apply_damage(hitbox_smash(player, 96, 80, 20), enemies, dmg)
+
         elif player.state == "thrust" and frame == 6:
             apply_damage(hitbox_thrust(player, 100, 10), enemies, dmg)
+
 
 # ================= LOOP PRINCIPAL ==================
 running = True
@@ -209,19 +369,27 @@ while running:
 
         # ----- Spawning de waves -----
         if room_manager.current_room == 1 and wave_manager is None:
-            wave_manager = WaveManager(wave_definitions, all_enemies,
-                                       SCREEN_WIDTH, current_ground_level, room_manager)
+            wave_manager = WaveManager(
+                wave_definitions, all_enemies, SCREEN_WIDTH, current_ground_level, room_manager
+            )
             wave_manager.start_next_wave()
 
         if wave_manager:
             if len(all_enemies) > 0 or wave_manager.wave_in_progress:
                 wave_manager.update()
-            if (not wave_manager.wave_in_progress and len(all_enemies) == 0 and
-                    wave_manager.current_wave <= len(wave_definitions)):
+            if (
+                not wave_manager.wave_in_progress
+                and len(all_enemies) == 0
+                and wave_manager.current_wave <= len(wave_definitions)
+            ):
                 wave_manager.start_next_wave()
 
         # ----- Mensagem pós-waves (sala 1) -----
-        if wave_manager and wave_manager.current_wave > len(wave_definitions) and len(all_enemies) == 0:
+        if (
+            wave_manager
+            and wave_manager.current_wave > len(wave_definitions)
+            and len(all_enemies) == 0
+        ):
             show_patio_prompt = True
             if keys[pygame.K_e]:
                 room_manager.next_room()
@@ -233,8 +401,9 @@ while running:
                 all_enemies.empty()
 
                 if room_manager.current_room == 2:
-                    boss = KnightBoss((SCREEN_WIDTH // 2 - 100, current_ground_level - 100),
-                                      current_ground_level)
+                    boss = KnightBoss(
+                        (SCREEN_WIDTH // 2 - 100, current_ground_level - 100), current_ground_level
+                    )
                     boss.rect.bottom = current_ground_level
                     boss.rect.y += BOSS_Y_OFFSET  # alinhamento vertical
                     boss.state = "pray"
@@ -276,10 +445,14 @@ while running:
                 boss.image = boss.animations["pray"][boss.animation_index]
                 now = pygame.time.get_ticks()
                 if current_dialogue_index < len(boss_dialogue):
-                    draw_text(screen, boss_dialogue[current_dialogue_index],
-                              (SCREEN_WIDTH // 2 - 300, current_ground_level - 75),
-                              (255, 255, 255), 30)
-                    if now - dialogue_start_time > 2000:
+                    draw_text(
+                        screen,
+                        boss_dialogue[current_dialogue_index],
+                        (SCREEN_WIDTH // 2 - 300, current_ground_level - 75),
+                        (255, 255, 255),
+                        30,
+                    )
+                    if now - dialogue_start_time > 3000:
                         current_dialogue_index += 1
                         dialogue_start_time = now
                 else:
@@ -292,12 +465,20 @@ while running:
             draw_boss_health_bar(screen, boss)
 
             if boss.hp <= 0 and boss.state == "death":
-                draw_text(screen, "Você libertou o seu povo!",
-                          (SCREEN_WIDTH // 2 - 200, SCREEN_HEIGHT // 2),
-                          (0, 255, 0), 40)
-                draw_text(screen, "Pressione E para encerrar",
-                          (SCREEN_WIDTH // 2 - 150, SCREEN_HEIGHT // 2 + 50),
-                          (255, 255, 255), 30)
+                draw_text(
+                    screen,
+                    "Você libertou o seu povo!",
+                    (SCREEN_WIDTH // 2 - 200, SCREEN_HEIGHT // 2),
+                    (0, 255, 0),
+                    40,
+                )
+                draw_text(
+                    screen,
+                    "Pressione E para finalmente descansar em paz.",
+                    (SCREEN_WIDTH // 2 - 150, SCREEN_HEIGHT // 2 + 50),
+                    (255, 255, 255),
+                    30,
+                )
                 if keys[pygame.K_e]:
                     running = False
 
@@ -305,9 +486,13 @@ while running:
 
         # ----- Reinício (tecla R) -----
         if not player.alive:
-            draw_text(screen, "Você morreu! Pressione R para reiniciar",
-                      (SCREEN_WIDTH // 2 - 250, SCREEN_HEIGHT // 2),
-                      (255, 0, 0), 40)
+            draw_text(
+                screen,
+                "Você morreu! Pressione R para reiniciar",
+                (SCREEN_WIDTH // 2 - 250, SCREEN_HEIGHT // 2),
+                (255, 0, 0),
+                40,
+            )
             if keys[pygame.K_r]:
                 room_manager.current_room = 0
                 current_ground_level = room_manager.get_ground_level()
@@ -326,15 +511,22 @@ while running:
 
         # ----- DESENHA PROMPTS POR CIMA -----
         if show_castle_prompt:
-            draw_text(screen, "Pressione E para entrar no castelo",
-                      (SCREEN_WIDTH // 2 - 200, current_ground_level - 300),
-                      (255, 255, 0), 36)
+            draw_text(
+                screen,
+                "Pressione E para entrar no castelo",
+                (SCREEN_WIDTH // 2 - 200, current_ground_level - 300),
+                (255, 255, 0),
+                36,
+            )
 
         if show_patio_prompt:
-            draw_text(screen,
-                      "Pressione E para avançar para o pátio e encontrar um velho conhecido",
-                      (SCREEN_WIDTH // 2 - 340, current_ground_level - 100),
-                      (255, 255, 0), 28)
+            draw_text(
+                screen,
+                "Pressione E para avançar para o pátio e encontrar um velho conhecido",
+                (SCREEN_WIDTH // 2 - 340, current_ground_level - 100),
+                (255, 255, 0),
+                28,
+            )
 
     # ========== FLIP & FPS ==========
     pygame.display.flip()
