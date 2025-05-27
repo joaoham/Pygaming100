@@ -22,13 +22,33 @@ pygame.display.set_caption("Hollow Mooni - Room System")
 clock = pygame.time.Clock()
 
 # ====== SISTEMA DE TELA INICIAL ======
-game_state = -1  # -1 = Tela Inicial, 0 = Jogo
+game_state = -2  
 
 start_screen = pygame.image.load('assets/background/telainicial.png') 
 start_screen = pygame.transform.scale(start_screen, (SCREEN_WIDTH, SCREEN_HEIGHT))
 font = pygame.font.SysFont(None, 60)
 button_text = font.render('INICIAR', True, (255, 255, 255))
 button_rect = button_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT - 100))
+
+# ====== INTRODUCAO =======
+intro_image = pygame.image.load('assets/background/introducao1.png')
+intro_image = pygame.transform.scale(intro_image, (SCREEN_WIDTH, SCREEN_HEIGHT))
+intro_font = pygame.font.SysFont('timesnewroman', 36)
+lore_lines = lore_lines = [
+    "Em um reino outrora próspero,",
+    "uma terrível maldição selou seu destino.",
+    "O Rei Mooni pereceu de forma misteriosa,",
+    "enquanto seus súditos, amaldiçoados,",
+    "foram condenados a proteger eternamente",
+    "um rei que já não existe mais.",
+    "",
+    "Agora, renascido em outra forma,",
+    "Rei Mooni busca quebrar a maldição,",
+    "e libertar seus amados súditos,",
+    "sobretudo seu melhor amigo,",
+    "antes que tudo se perca para sempre.",
+    "Pressione ENTER para continuar..."
+]
 
 # ====== JOGO NORMAL SETUP ======
 room_manager = RoomManager(SCREEN_WIDTH, SCREEN_HEIGHT)
@@ -115,11 +135,14 @@ while running:
             running = False
 
         # Clique na tela inicial
-        if game_state == -1 and event.type == pygame.MOUSEBUTTONDOWN:
+        if game_state == -2 and event.type == pygame.MOUSEBUTTONDOWN:
             if button_rect.collidepoint(event.pos):
-                game_state = 0  # Começa o jogo
+                game_state = -1  # Começa o jogo
+        elif game_state == -1 and event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_RETURN:
+                game_state = 0 
 
-    if game_state == -1:
+    if game_state == -2:
         # TELA INICIAL
         screen.blit(start_screen, (0, 0))
         button_color = (30, 60, 60)  # azul petróleo meio esverdeado igual ao fundo da ti
@@ -138,6 +161,17 @@ while running:
 
             # Desenha o texto branco por cima
         screen.blit(button_text, button_rect)
+    elif game_state == -1:
+        # TELA DE INTRODUÇÃO
+        screen.blit(intro_image, (0, 0))
+        overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
+        overlay.set_alpha(150)
+        overlay.fill((0, 0, 0))
+        screen.blit(overlay, (0, 0))
+
+        for idx, line in enumerate(lore_lines):
+            text_surf = intro_font.render(line, True, (255, 255, 255))
+            screen.blit(text_surf, (50, 50 + idx * 50))
 
     else:
         # ====== SEU JOGO NORMAL SEM ALTERAR ======
@@ -145,6 +179,12 @@ while running:
 
         if player_can_move:
             player.update(keys, current_ground_level, SCREEN_WIDTH)
+        if room_manager.current_room == 0:
+            player.rect.centerx = SCREEN_WIDTH // 2 - 50
+            player.rect.bottom = current_ground_level
+            player_can_move = False
+        else:
+            player_can_move = True
 
         check_player_attack(player, all_enemies)
 
@@ -226,7 +266,7 @@ while running:
             spell.draw(screen)
 
         if room_manager.current_room == 0 and room_manager.player_at_door(player):
-            draw_text(screen, "Pressione E para entrar no castelo", (SCREEN_WIDTH // 2 - 200, current_ground_level - 100), (255, 255, 0), 36)
+            draw_text(screen, "Pressione E para entrar no castelo", (SCREEN_WIDTH // 2 - 200, current_ground_level - 300), (255, 255, 0), 36)
 
         if room_manager.current_room == 2 and boss:
             current_time = pygame.time.get_ticks()
