@@ -155,8 +155,10 @@ while running:
             if room_manager.current_room == 2:
                 boss = KnightBoss((SCREEN_WIDTH // 2 - 100, current_ground_level - 100), current_ground_level)
                 boss.rect.bottom = current_ground_level
-                boss.rect.y = player.rect.y + 35
-                boss.state, boss.passive, boss.animation_index = "pray", True, 3
+                boss.rect.y = player.rect.y
+                boss.state = "pray"
+                boss.passive = True
+                boss.animation_index = 3
                 boss_group = pygame.sprite.GroupSingle(boss)
                 boss_intro_time = pygame.time.get_ticks()
                 dialogue_start_time = boss_intro_time
@@ -193,7 +195,7 @@ while running:
             boss.image = boss.animations[boss.state][boss.animation_index]
 
             if current_dialogue_index < len(boss_dialogue):
-                draw_text(screen, boss_dialogue[current_dialogue_index], (SCREEN_WIDTH // 2 - 300, current_ground_level - 300), (255, 255, 255), 30)
+                draw_text(screen, boss_dialogue[current_dialogue_index], (SCREEN_WIDTH // 2 - 300, current_ground_level - 150), color=(255, 255, 255), size=30)
                 if current_time - dialogue_start_time > 2000:
                     current_dialogue_index += 1
                     dialogue_start_time = current_time
@@ -230,6 +232,7 @@ while running:
             player_can_move, current_dialogue_index, waves_completed = True, 0, False
 
     pygame.display.flip()
-    clock.tick(60)
+
+    clock.tick(90 if room_manager.current_room == 2 else 60)
 
 pygame.quit()
