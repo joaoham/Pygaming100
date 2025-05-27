@@ -86,9 +86,9 @@ boss = None
 boss_group = None
 boss_intro_time = None
 boss_dialogue = [
-    "Este reino... foi amaldiçoado...",
+    "Então é você mais um a perecer para essa maldição...",
     "Eu era o melhor amigo do rei... minha missão era salvá-lo...",
-    "Mas eu falhei... e me amaldiçoei a guardar este castelo pela eternidade...",
+    "Mas eu falhei... e falharei novamente agora que mais um inocente cairá",
     "Mas você... eu reconheço...",
     "Meu rei... mesmo em outra forma...",
     "Por favor... salve-nos desta maldição... e me conceda seu perdão...",
