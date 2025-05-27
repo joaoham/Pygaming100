@@ -32,7 +32,7 @@ class BringerOfDeathEnemy(pygame.sprite.Sprite):
 
         self.state = "idle"
         self.frame_index = 0
-        self.animation_speed = 0.3
+        self.animation_speed = 0.35
         self.death_animation_speed = 0.07
         self.hurt_animation_speed = 0.07
         self.image = self.animations[self.state][int(self.frame_index)]

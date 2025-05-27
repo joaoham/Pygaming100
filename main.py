@@ -277,7 +277,7 @@ while running:
                 now = pygame.time.get_ticks()
                 if current_dialogue_index < len(boss_dialogue):
                     draw_text(screen, boss_dialogue[current_dialogue_index],
-                              (SCREEN_WIDTH // 2 - 300, current_ground_level - 150),
+                              (SCREEN_WIDTH // 2 - 300, current_ground_level - 75),
                               (255, 255, 255), 30)
                     if now - dialogue_start_time > 2000:
                         current_dialogue_index += 1
@@ -292,7 +292,7 @@ while running:
             draw_boss_health_bar(screen, boss)
 
             if boss.hp <= 0 and boss.state == "death":
-                draw_text(screen, "Você venceu o Boss! Parabéns!",
+                draw_text(screen, "Você libertou o seu povo!",
                           (SCREEN_WIDTH // 2 - 200, SCREEN_HEIGHT // 2),
                           (0, 255, 0), 40)
                 draw_text(screen, "Pressione E para encerrar",
