@@ -9,6 +9,13 @@ from core.spell_effect import SpellEffect
 from core.knight_boss import KnightBoss
 
 pygame.init()
+pygame.mixer.init()
+
+caminhomusica = 'assets/sounds/backgroundprinci.mp3'
+
+pygame.mixer.music.load(caminhomusica)
+pygame.mixer.music.set_volume(0.5)
+pygame.mixer.music.play(-1)
 
 SCREEN_WIDTH, SCREEN_HEIGHT = 1280, 720
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
