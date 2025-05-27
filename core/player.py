@@ -75,8 +75,6 @@ class Player(pygame.sprite.Sprite):
         if keys[pygame.K_q]:
             self.state = "thrust"
             self.sword_thrust_sound.play()
-        if keys[pygame.K_f]:
-            self.state = "heal"
         if keys[pygame.K_SPACE] and self.on_ground:
             self.vel.y = self.jump_speed
             self.on_ground = False
