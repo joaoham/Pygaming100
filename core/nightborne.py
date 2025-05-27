@@ -24,7 +24,7 @@ class NightBorneEnemy(pygame.sprite.Sprite):
         # ✅ midbottom para alinhar corretamente com o chão
         self.rect = self.image.get_rect(midbottom=(pos[0], pos[1]))
 
-        self.speed = 7
+        self.speed = 3
         self.health = 100
         self.damage = 20
         self.attack_cooldown = 1000
