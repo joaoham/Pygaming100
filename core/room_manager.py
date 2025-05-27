@@ -11,7 +11,7 @@ class RoomManager:
             {
                 "background": "assets/background/background_passarela.png",
                 "foreground": "assets/background/frente_passarela.png",
-                "movement": False,  # ✅ Inicialmente travado
+                "movement": False,          # travado até waves concluírem
                 "waves_completed": False,
                 "ground_level": 750
             },
@@ -21,11 +21,27 @@ class RoomManager:
                 "ground_level": 650
             }
         ]
+
         self.current_room = 0
         self.screen_width = screen_width
         self.screen_height = screen_height
 
-        self.door_rect = pygame.Rect(screen_width // 2 - 50, screen_height // 2 + 50, 100, 200)
+        # pré-carrega e escala todas as superfícies
+        for room in self.rooms:
+            if "background" in room:
+                img = pygame.image.load(room["background"]).convert()
+                room["bg_surface"] = pygame.transform.scale(
+                    img, (screen_width, screen_height)
+                )
+            if "foreground" in room:
+                img = pygame.image.load(room["foreground"]).convert_alpha()
+                room["fg_surface"] = pygame.transform.scale(
+                    img, (screen_width, screen_height)
+                )
+
+        self.door_rect = pygame.Rect(
+            screen_width // 2 - 50, screen_height // 2 + 50, 100, 200
+        )
 
     def next_room(self):
         if self.current_room < len(self.rooms) - 1:
@@ -33,22 +49,17 @@ class RoomManager:
 
     def draw_room(self, surface):
         room = self.rooms[self.current_room]
-        if "background" in room:
-            bg = pygame.image.load(room["background"]).convert()
-            bg = pygame.transform.scale(bg, (self.screen_width, self.screen_height))
-            surface.blit(bg, (0, 0))
+        if "bg_surface" in room:
+            surface.blit(room["bg_surface"], (0, 0))
         else:
-            surface.fill(room["color"])
+            surface.fill(room.get("color", (0, 0, 0)))
 
     def draw_foreground(self, surface):
         room = self.rooms[self.current_room]
-        if "foreground" in room:
-            fg = pygame.image.load(room["foreground"]).convert_alpha()
-            fg = pygame.transform.scale(fg, (self.screen_width, self.screen_height))
-            surface.blit(fg, (0, 0))
+        if "fg_surface" in room:
+            surface.blit(room["fg_surface"], (0, 0))
 
     def can_move(self):
-        # ✅ Bloqueia movimento se ondas não completadas na passarela
         if self.current_room == 1 and not self.rooms[1]["waves_completed"]:
             return False
         return self.rooms[self.current_room]["movement"]
