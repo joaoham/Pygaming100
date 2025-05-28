@@ -104,5 +104,6 @@ Todos os direitos permanecem com seus respectivos autores.
 
 ---
 
+## Vídeo com gameplay (não foi possivel gravar com audio)
 
-
+https://youtu.be/uvt5rGRDp54
