@@ -38,12 +38,12 @@ class WaveManager:
 
             self.wave_in_progress = True
         else:
-            print("✅ Todas as waves concluídas!")
+            print("Todas as waves concluidas!")
             self.room_manager.complete_waves()
 
     def update(self):
         if self.wave_in_progress and len(self.all_enemies) == 0:
-            print(f"✅ Wave {self.current_wave} concluída!")
+            print(f"Wave {self.current_wave} concluida!")
             self.current_wave += 1
             self.wave_in_progress = False
             if self.current_wave > len(self.wave_definitions):
