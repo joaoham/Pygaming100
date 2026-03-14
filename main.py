@@ -189,7 +189,7 @@ def draw_boss_health_bar(surface, boss, pos=(SCREEN_WIDTH // 2 - 150, 20), size=
     pygame.draw.rect(
         surface,
         (0, 255, 0),
-        (*pos, size[0] * (boss.hp / 200), size[1]),
+        (*pos, size[0] * (boss.hp / boss.max_hp), size[1]),
     )
     pygame.draw.rect(surface, (255, 255, 255), (*pos, *size), 2)
 
