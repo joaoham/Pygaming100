@@ -275,9 +275,9 @@ def apply_damage(hitbox, enemies, damage):
             enemy.recently_hit = True
 
 
-def check_player_attack(player, enemies):
+def check_player_attack(player, enemies, boss=None):
     """
-    Verifica se o jogador acertou algum inimigo no frame atual.
+    Verifica se o jogador acertou algum inimigo ou o chefe no frame atual.
 
     Deve ser chamada uma vez por frame após `player.update()`.
 
@@ -287,16 +287,27 @@ def check_player_attack(player, enemies):
         Jogador em ação.
     enemies : pygame.sprite.Group
         Grupo de inimigos suscetíveis a levar dano.
+    boss : KnightBoss, opcional
+        Instância do chefe, se presente na sala.
     """
-    if player.state in ("smash", "thrust"):
-        dmg = player.attack_damage[player.state]
-        frame = int(player.frame_index)
+    if player.state not in ("smash", "thrust"):
+        return
 
-        if player.state == "smash" and 8 <= frame <= 12:
-            apply_damage(hitbox_smash(player, 96, 80, 20), enemies, dmg)
+    dmg = player.attack_damage[player.state]
+    frame = int(player.frame_index)
+    hitbox = None
 
-        elif player.state == "thrust" and frame == 6:
-            apply_damage(hitbox_thrust(player, 100, 10), enemies, dmg)
+    if player.state == "smash" and 8 <= frame <= 12:
+        hitbox = hitbox_smash(player, 96, 80, 20)
+    elif player.state == "thrust" and frame == 6:
+        hitbox = hitbox_thrust(player, 100, 10)
+
+    if hitbox is None:
+        return
+
+    apply_damage(hitbox, enemies, dmg)
+    if boss and hitbox.colliderect(boss.rect):
+        boss.take_damage(dmg)
 
 
 # ================= LOOP PRINCIPAL ==================
@@ -349,18 +360,7 @@ while running:
         if player_can_move:
             player.update(keys, current_ground_level, SCREEN_WIDTH)
 
-        check_player_attack(player, all_enemies)
-
-        # ----- Boss recebe dano -----
-        if boss and player.state in ("smash", "thrust"):
-            dmg = player.attack_damage[player.state]
-            frame = int(player.frame_index)
-            if player.state == "smash" and 8 <= frame <= 12:
-                if hitbox_smash(player, 96, 80, 20).colliderect(boss.rect):
-                    boss.take_damage(dmg)
-            elif player.state == "thrust" and frame == 6:
-                if hitbox_thrust(player, 100, 10).colliderect(boss.rect):
-                    boss.take_damage(dmg)
+        check_player_attack(player, all_enemies, boss)
 
         # ----- Reset flag de recently_hit -----
         if player.state not in ("smash", "thrust"):
