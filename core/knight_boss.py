@@ -76,7 +76,8 @@ class KnightBoss(pygame.sprite.Sprite):
         self.rect.y = 362  # ajuste manual fino
         self.rect.bottom = ground_y
 
-        self.hp = 200
+        self.max_hp = 200
+        self.hp = self.max_hp
         self.speed = 2
         self.attack_range = 100
         self.last_attack_time = 0
