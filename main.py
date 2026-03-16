@@ -275,6 +275,39 @@ def apply_damage(hitbox, enemies, damage):
             enemy.recently_hit = True
 
 
+def reset_game(room_manager, all_enemies, spells):
+    """
+    Reinicializa o estado do jogo para o início.
+
+    Parameters
+    ----------
+    room_manager : RoomManager
+        Gerenciador de salas, terá current_room resetado para 0.
+    all_enemies : pygame.sprite.Group
+        Grupo de inimigos, será esvaziado.
+    spells : pygame.sprite.Group
+        Grupo de feitiços, será esvaziado.
+
+    Returns
+    -------
+    tuple
+        (player, current_ground_level, wave_manager, boss,
+         boss_group, boss_intro_time, current_dialogue_index, waves_completed)
+    """
+    room_manager.current_room = 0
+    current_ground_level = room_manager.get_ground_level()
+
+    player = Player((0, 0))
+    player.rect.bottom = current_ground_level
+    position_player_for_room(0, player)
+    player.attack_damage = {"smash": 15, "thrust": 10}
+
+    all_enemies.empty()
+    spells.empty()
+
+    return player, current_ground_level, None, None, None, None, 0, False
+
+
 def check_player_attack(player, enemies):
     """
     Verifica se o jogador acertou algum inimigo no frame atual.
@@ -494,20 +527,16 @@ while running:
                 40,
             )
             if keys[pygame.K_r]:
-                room_manager.current_room = 0
-                current_ground_level = room_manager.get_ground_level()
-
-                player = Player((0, 0))
-                player.rect.bottom = current_ground_level
-                position_player_for_room(0, player)
-                player.attack_damage = {"smash": 15, "thrust": 10}
-                player.health, player.alive = player.max_health, True
-
-                wave_manager = None
-                all_enemies.empty()
-                spells.empty()
-                boss, boss_group, boss_intro_time = None, None, None
-                current_dialogue_index, waves_completed = 0, False
+                (
+                    player,
+                    current_ground_level,
+                    wave_manager,
+                    boss,
+                    boss_group,
+                    boss_intro_time,
+                    current_dialogue_index,
+                    waves_completed,
+                ) = reset_game(room_manager, all_enemies, spells)
 
         # ----- DESENHA PROMPTS POR CIMA -----
         if show_castle_prompt:
